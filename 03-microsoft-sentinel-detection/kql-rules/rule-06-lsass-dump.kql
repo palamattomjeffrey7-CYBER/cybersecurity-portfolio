@@ -1,0 +1,15 @@
+// RULE 06 — LSASS Memory Dumping
+// MITRE: T1003.001 | Severity: CRITICAL | Tactic: Credential Access
+// Trigger: Process accessing lsass.exe memory — credential dumping
+// ─────────────────────────────────────────────────────────────────────────────
+SecurityEvent
+| where TimeGenerated >= ago(1h)
+| where EventID == 4656  // Handle to object requested
+| where ObjectName has "lsass"
+| where AccessMask in ("0x1010", "0x1410", "0x143a", "0x1fffff")
+| extend
+    Severity = "CRITICAL",
+    MITRE = "T1003.001",
+    AttackType = "LSASS Memory Dump Attempt",
+    RecommendedAction = "IMMEDIATE: Isolate host, collect memory dump, escalate L3, assume credential compromise"
+| project TimeGenerated, Computer, SubjectUserName, ObjectName, AccessMask, ProcessName, Severity, MITRE, RecommendedAction

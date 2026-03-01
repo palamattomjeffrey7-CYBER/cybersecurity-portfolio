@@ -1,0 +1,27 @@
+// RULE 14 — Ransomware Indicator — Mass File Rename/Encryption
+// MITRE: T1486 | Severity: CRITICAL | Tactic: Impact
+// Trigger: 100+ file operations with suspicious extensions in 5 minutes
+// ─────────────────────────────────────────────────────────────────────────────
+let ransomwareExtensions = dynamic([
+    ".encrypted", ".locked", ".crypto", ".enc", ".crypt",
+    ".locky", ".cerber", ".wnry", ".wncry", ".ransom",
+    ".r5a", ".r4a", ".darkness", ".payransom"
+]);
+StorageFileLogs
+| where TimeGenerated >= ago(1h)
+| where OperationName in ("PutBlob", "PutFile", "CreateFile")
+| where StatusCode == 201
+| extend FileExtension = tostring(split(Uri, ".")[-1])
+| where strcat(".", FileExtension) in (ransomwareExtensions)
+| summarize
+    SuspiciousFiles = count(),
+    Extensions = make_set(FileExtension),
+    AffectedPaths = make_set(Uri, 10)
+    by CallerIpAddress, bin(TimeGenerated, 5m)
+| where SuspiciousFiles >= 50
+| extend
+    Severity = "CRITICAL",
+    MITRE = "T1486",
+    AttackType = "RANSOMWARE — Mass File Encryption Detected",
+    RecommendedAction = "IMMEDIATE: Isolate affected systems, disable accounts, invoke Ransomware IR Playbook, notify management"
+| project TimeGenerated, CallerIpAddress, SuspiciousFiles, Extensions, AffectedPaths, Severity, MITRE, RecommendedAction

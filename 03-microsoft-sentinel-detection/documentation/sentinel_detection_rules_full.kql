@@ -1,0 +1,366 @@
+// ============================================================================
+// Microsoft Sentinel KQL Detection Rules Library
+// Author: Jeffrey Roshan Palamattom — L1 SOC Analyst
+// Description: 15 production-ready detection rules for common attack patterns
+// Framework: MITRE ATT&CK
+// ============================================================================
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 01 — Brute Force Attack (Multiple Failed Logins)
+// MITRE: T1110 | Severity: HIGH | Tactic: Credential Access
+// Trigger: 10+ failed logins to same account within 5 minutes
+// ─────────────────────────────────────────────────────────────────────────────
+let threshold = 10;
+let timeWindow = 5m;
+SecurityEvent
+| where TimeGenerated >= ago(1h)
+| where EventID == 4625  // Failed logon
+| summarize
+    FailedAttempts = count(),
+    DistinctSources = dcount(IpAddress),
+    SourceIPs = make_set(IpAddress),
+    FirstAttempt = min(TimeGenerated),
+    LastAttempt = max(TimeGenerated)
+    by TargetAccount, bin(TimeGenerated, timeWindow)
+| where FailedAttempts >= threshold
+| extend
+    DurationMinutes = datetime_diff('minute', LastAttempt, FirstAttempt),
+    AttackType = iff(DistinctSources > 3, "Distributed Brute Force", "Single-Source Brute Force"),
+    Severity = "HIGH",
+    MITRE = "T1110",
+    RecommendedAction = "Block source IP, lock account, escalate to L2"
+| project TimeGenerated, TargetAccount, FailedAttempts, DistinctSources, SourceIPs, AttackType, Severity, MITRE, RecommendedAction
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 02 — Password Spray Attack
+// MITRE: T1110.003 | Severity: HIGH | Tactic: Credential Access
+// Trigger: Single IP failing login against 20+ distinct accounts
+// ─────────────────────────────────────────────────────────────────────────────
+SecurityEvent
+| where TimeGenerated >= ago(1h)
+| where EventID == 4625
+| where IpAddress != "-" and IpAddress != ""
+| summarize
+    UniqueAccounts = dcount(TargetAccount),
+    Accounts = make_set(TargetAccount),
+    FailedAttempts = count()
+    by IpAddress, bin(TimeGenerated, 30m)
+| where UniqueAccounts >= 20
+| extend
+    Severity = "HIGH",
+    MITRE = "T1110.003",
+    AttackType = "Password Spray",
+    RecommendedAction = "Block IP at firewall, alert identity team, check for successful auth from same IP"
+| project TimeGenerated, IpAddress, UniqueAccounts, FailedAttempts, Accounts, Severity, MITRE, AttackType, RecommendedAction
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 03 — Successful Login After Brute Force
+// MITRE: T1078 | Severity: CRITICAL | Tactic: Initial Access
+// Trigger: Account logs in successfully within 10 min of brute force activity
+// ─────────────────────────────────────────────────────────────────────────────
+let bruteForceAccounts =
+    SecurityEvent
+    | where TimeGenerated >= ago(2h)
+    | where EventID == 4625
+    | summarize FailCount = count() by TargetAccount, bin(TimeGenerated, 5m)
+    | where FailCount >= 5
+    | distinct TargetAccount;
+SecurityEvent
+| where TimeGenerated >= ago(2h)
+| where EventID == 4624  // Successful logon
+| where TargetUserName in (bruteForceAccounts)
+| extend
+    Severity = "CRITICAL",
+    MITRE = "T1078",
+    AttackType = "Account Compromise Post-Brute-Force",
+    RecommendedAction = "IMMEDIATE: Reset credentials, revoke sessions, isolate if possible, escalate L2+L3"
+| project TimeGenerated, TargetUserName, IpAddress, LogonType, Severity, MITRE, RecommendedAction
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 04 — Privilege Escalation — Local Admin Account Creation
+// MITRE: T1136.001 | Severity: HIGH | Tactic: Persistence
+// Trigger: New local account created and added to admin group
+// ─────────────────────────────────────────────────────────────────────────────
+SecurityEvent
+| where TimeGenerated >= ago(24h)
+| where EventID in (4720, 4732)  // Account created, member added to group
+| extend
+    ActivityType = case(
+        EventID == 4720, "New Account Created",
+        EventID == 4732, "Account Added to Admin Group",
+        "Unknown"
+    )
+| summarize
+    Activities = make_list(ActivityType),
+    SubjectAccounts = make_set(SubjectUserName),
+    Computers = make_set(Computer)
+    by TargetAccount, bin(TimeGenerated, 10m)
+| where array_length(Activities) >= 2
+| extend
+    Severity = "HIGH",
+    MITRE = "T1136.001",
+    RecommendedAction = "Verify with IT, disable if unauthorized, investigate creating account"
+| project TimeGenerated, TargetAccount, Activities, SubjectAccounts, Computers, Severity, MITRE, RecommendedAction
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 05 — Suspicious PowerShell Execution
+// MITRE: T1059.001 | Severity: HIGH | Tactic: Execution
+// Trigger: PowerShell with encoded commands or download cradles
+// ─────────────────────────────────────────────────────────────────────────────
+SecurityEvent
+| where TimeGenerated >= ago(1h)
+| where EventID == 4688  // Process creation
+| where NewProcessName has "powershell" or NewProcessName has "pwsh"
+| where CommandLine has_any (
+    "-enc", "-encodedcommand",
+    "iex", "invoke-expression",
+    "downloadstring", "downloadfile",
+    "webclient", "net.webclient",
+    "bypass", "-nop", "-windowstyle hidden",
+    "frombase64string", "bitsadmin",
+    "certutil -decode"
+)
+| extend
+    Severity = iff(CommandLine has_any ("downloadstring", "iex", "encodedcommand"), "CRITICAL", "HIGH"),
+    MITRE = "T1059.001",
+    AttackType = "Suspicious PowerShell Activity",
+    RecommendedAction = "Isolate endpoint, collect full command line for forensics, escalate to L2"
+| project TimeGenerated, Computer, SubjectUserName, CommandLine, Severity, MITRE, RecommendedAction
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 06 — LSASS Memory Dumping
+// MITRE: T1003.001 | Severity: CRITICAL | Tactic: Credential Access
+// Trigger: Process accessing lsass.exe memory — credential dumping
+// ─────────────────────────────────────────────────────────────────────────────
+SecurityEvent
+| where TimeGenerated >= ago(1h)
+| where EventID == 4656  // Handle to object requested
+| where ObjectName has "lsass"
+| where AccessMask in ("0x1010", "0x1410", "0x143a", "0x1fffff")
+| extend
+    Severity = "CRITICAL",
+    MITRE = "T1003.001",
+    AttackType = "LSASS Memory Dump Attempt",
+    RecommendedAction = "IMMEDIATE: Isolate host, collect memory dump, escalate L3, assume credential compromise"
+| project TimeGenerated, Computer, SubjectUserName, ObjectName, AccessMask, ProcessName, Severity, MITRE, RecommendedAction
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 07 — Lateral Movement via RDP
+// MITRE: T1021.001 | Severity: MEDIUM | Tactic: Lateral Movement
+// Trigger: Single account RDP login to 3+ different machines in 1 hour
+// ─────────────────────────────────────────────────────────────────────────────
+SecurityEvent
+| where TimeGenerated >= ago(1h)
+| where EventID == 4624
+| where LogonType == 10  // RemoteInteractive (RDP)
+| summarize
+    UniqueHosts = dcount(Computer),
+    Hosts = make_set(Computer),
+    SourceIPs = make_set(IpAddress),
+    SessionCount = count()
+    by TargetUserName, bin(TimeGenerated, 1h)
+| where UniqueHosts >= 3
+| extend
+    Severity = iff(UniqueHosts >= 5, "HIGH", "MEDIUM"),
+    MITRE = "T1021.001",
+    AttackType = "Lateral Movement via RDP",
+    RecommendedAction = "Verify with user, check for unauthorized access, review each host for compromise"
+| project TimeGenerated, TargetUserName, UniqueHosts, Hosts, SourceIPs, Severity, MITRE, AttackType, RecommendedAction
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 08 — Pass-the-Hash / Lateral Movement
+// MITRE: T1550.002 | Severity: HIGH | Tactic: Lateral Movement
+// Trigger: NTLM logon with no corresponding Kerberos — pass-the-hash pattern
+// ─────────────────────────────────────────────────────────────────────────────
+SecurityEvent
+| where TimeGenerated >= ago(1h)
+| where EventID == 4624
+| where LogonType == 3  // Network logon
+| where AuthenticationPackageName == "NTLM"
+| where TargetUserName !endswith "$"  // Exclude machine accounts
+| where IpAddress != "127.0.0.1" and IpAddress != "-"
+| summarize
+    NTLMLogons = count(),
+    TargetHosts = make_set(Computer),
+    UniqueTargets = dcount(Computer)
+    by TargetUserName, IpAddress, bin(TimeGenerated, 30m)
+| where NTLMLogons >= 3 or UniqueTargets >= 2
+| extend
+    Severity = "HIGH",
+    MITRE = "T1550.002",
+    AttackType = "Possible Pass-the-Hash",
+    RecommendedAction = "Investigate source host, check for credential dumping tools, escalate L2"
+| project TimeGenerated, TargetUserName, IpAddress, NTLMLogons, UniqueTargets, TargetHosts, Severity, MITRE, RecommendedAction
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 09 — DNS Tunneling Detection
+// MITRE: T1048.001 | Severity: HIGH | Tactic: Exfiltration
+// Trigger: High volume of DNS queries to single domain (tunneling indicator)
+// ─────────────────────────────────────────────────────────────────────────────
+DnsEvents
+| where TimeGenerated >= ago(1h)
+| where SubType == "LookupQuery"
+| extend BaseDomain = tostring(split(Name, ".")[-2]) + "." + tostring(split(Name, ".")[-1])
+| summarize
+    QueryCount = count(),
+    UniqueSubdomains = dcount(Name),
+    AvgNameLength = avg(strlen(Name)),
+    MaxNameLength = max(strlen(Name)),
+    SampleQueries = make_set(Name, 5)
+    by ClientIP, BaseDomain, bin(TimeGenerated, 10m)
+| where QueryCount >= 100 or UniqueSubdomains >= 50 or AvgNameLength >= 40
+| extend
+    Severity = iff(QueryCount >= 500 or AvgNameLength >= 50, "CRITICAL", "HIGH"),
+    MITRE = "T1048.001",
+    AttackType = "Possible DNS Tunneling / Data Exfiltration",
+    RecommendedAction = "Block domain at DNS, capture traffic with Wireshark, escalate L2"
+| project TimeGenerated, ClientIP, BaseDomain, QueryCount, UniqueSubdomains, AvgNameLength, SampleQueries, Severity, MITRE, RecommendedAction
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 10 — C2 Beaconing Detection
+// MITRE: T1071.001 | Severity: HIGH | Tactic: Command and Control
+// Trigger: Regular periodic outbound connections — beaconing behaviour
+// ─────────────────────────────────────────────────────────────────────────────
+CommonSecurityLog
+| where TimeGenerated >= ago(6h)
+| where DeviceVendor == "Palo Alto Networks"
+| where DeviceAction == "allow"
+| where DestinationPort in (80, 443, 8080, 8443)
+| summarize
+    ConnectionCount = count(),
+    BytesSent = sum(SentBytes),
+    BytesReceived = sum(ReceivedBytes),
+    TimeGaps = make_list(TimeGenerated)
+    by SourceIP, DestinationIP, DestinationPort, bin(TimeGenerated, 1h)
+| where ConnectionCount >= 20
+| extend
+    AvgBytesSent = BytesSent / ConnectionCount,
+    // Small, consistent payload size = beaconing
+    Severity = iff(AvgBytesSent < 500 and ConnectionCount >= 30, "HIGH", "MEDIUM"),
+    MITRE = "T1071.001",
+    AttackType = "Potential C2 Beaconing",
+    RecommendedAction = "Block destination IP, capture traffic, submit to sandbox, escalate L2"
+| where Severity == "HIGH"
+| project TimeGenerated, SourceIP, DestinationIP, DestinationPort, ConnectionCount, BytesSent, AvgBytesSent, Severity, MITRE, AttackType, RecommendedAction
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 11 — Impossible Travel (Multi-Country Login)
+// MITRE: T1078 | Severity: HIGH | Tactic: Initial Access
+// Trigger: Same account logs in from 2 countries within 1 hour (impossible physically)
+// ─────────────────────────────────────────────────────────────────────────────
+SigninLogs
+| where TimeGenerated >= ago(2h)
+| where ResultType == 0  // Successful sign-in
+| summarize
+    Countries = make_set(Location),
+    IPs = make_set(IPAddress),
+    UniqueCountries = dcount(Location),
+    LoginTimes = make_list(TimeGenerated),
+    FirstLogin = min(TimeGenerated),
+    LastLogin = max(TimeGenerated)
+    by UserPrincipalName, bin(TimeGenerated, 1h)
+| where UniqueCountries >= 2
+| extend
+    TimeDiffMinutes = datetime_diff('minute', LastLogin, FirstLogin),
+    Severity = iff(UniqueCountries >= 3, "CRITICAL", "HIGH"),
+    MITRE = "T1078",
+    AttackType = "Impossible Travel — Likely Account Compromise",
+    RecommendedAction = "Disable account immediately, reset MFA, contact user out-of-band, escalate L2"
+| project TimeGenerated, UserPrincipalName, Countries, UniqueCountries, IPs, TimeDiffMinutes, Severity, MITRE, RecommendedAction
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 12 — Mass File Access / Data Exfiltration
+// MITRE: T1039 | Severity: HIGH | Tactic: Collection
+// Trigger: Single user accessing 500+ files in 15 minutes
+// ─────────────────────────────────────────────────────────────────────────────
+OfficeActivity
+| where TimeGenerated >= ago(1h)
+| where Operation in ("FileAccessed", "FileDownloaded", "FileSyncDownloadedFull")
+| summarize
+    FilesAccessed = count(),
+    UniqueFiles = dcount(SourceFileName),
+    Sites = make_set(Site_Url)
+    by UserId, bin(TimeGenerated, 15m)
+| where FilesAccessed >= 500
+| extend
+    Severity = iff(FilesAccessed >= 1000, "CRITICAL", "HIGH"),
+    MITRE = "T1039",
+    AttackType = "Mass File Access — Potential Data Exfiltration",
+    RecommendedAction = "Revoke SharePoint access, check DLP alerts, interview user, check external sharing"
+| project TimeGenerated, UserId, FilesAccessed, UniqueFiles, Sites, Severity, MITRE, RecommendedAction
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 13 — Scheduled Task Created (Persistence Mechanism)
+// MITRE: T1053.005 | Severity: MEDIUM | Tactic: Persistence
+// Trigger: Scheduled task created by non-system account
+// ─────────────────────────────────────────────────────────────────────────────
+SecurityEvent
+| where TimeGenerated >= ago(24h)
+| where EventID == 4698  // Scheduled task created
+| extend TaskXML = TaskContent
+| where SubjectUserName !endswith "$"  // Not a system/machine account
+| where SubjectUserName !in ("SYSTEM", "LOCAL SERVICE", "NETWORK SERVICE")
+| extend
+    Severity = iff(TaskXML has_any ("powershell", "cmd", "wscript", "mshta", "rundll32"), "HIGH", "MEDIUM"),
+    MITRE = "T1053.005",
+    AttackType = "Scheduled Task Created — Possible Persistence",
+    RecommendedAction = "Verify with system owner, delete if unauthorized, investigate creating user"
+| project TimeGenerated, Computer, SubjectUserName, TaskName, TaskXML, Severity, MITRE, RecommendedAction
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 14 — Ransomware Indicator — Mass File Rename/Encryption
+// MITRE: T1486 | Severity: CRITICAL | Tactic: Impact
+// Trigger: 100+ file operations with suspicious extensions in 5 minutes
+// ─────────────────────────────────────────────────────────────────────────────
+let ransomwareExtensions = dynamic([
+    ".encrypted", ".locked", ".crypto", ".enc", ".crypt",
+    ".locky", ".cerber", ".wnry", ".wncry", ".ransom",
+    ".r5a", ".r4a", ".darkness", ".payransom"
+]);
+StorageFileLogs
+| where TimeGenerated >= ago(1h)
+| where OperationName in ("PutBlob", "PutFile", "CreateFile")
+| where StatusCode == 201
+| extend FileExtension = tostring(split(Uri, ".")[-1])
+| where strcat(".", FileExtension) in (ransomwareExtensions)
+| summarize
+    SuspiciousFiles = count(),
+    Extensions = make_set(FileExtension),
+    AffectedPaths = make_set(Uri, 10)
+    by CallerIpAddress, bin(TimeGenerated, 5m)
+| where SuspiciousFiles >= 50
+| extend
+    Severity = "CRITICAL",
+    MITRE = "T1486",
+    AttackType = "RANSOMWARE — Mass File Encryption Detected",
+    RecommendedAction = "IMMEDIATE: Isolate affected systems, disable accounts, invoke Ransomware IR Playbook, notify management"
+| project TimeGenerated, CallerIpAddress, SuspiciousFiles, Extensions, AffectedPaths, Severity, MITRE, RecommendedAction
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RULE 15 — Threat Intelligence IP Match — Inbound Connection
+// MITRE: T1190 | Severity: HIGH | Tactic: Initial Access
+// Trigger: Inbound connection from known TI feed malicious IP
+// ─────────────────────────────────────────────────────────────────────────────
+let ThreatIntelIPs =
+    ThreatIntelligenceIndicator
+    | where TimeGenerated >= ago(7d)
+    | where Active == true
+    | where isnotempty(NetworkIP)
+    | where ConfidenceScore >= 75
+    | distinct NetworkIP;
+CommonSecurityLog
+| where TimeGenerated >= ago(1h)
+| where SourceIP in (ThreatIntelIPs)
+| where DeviceAction !in ("drop", "deny", "block")  // Connections that got THROUGH
+| join kind=leftouter (
+    ThreatIntelligenceIndicator
+    | where Active == true
+    | where isnotempty(NetworkIP)
+    | project NetworkIP, ThreatType, Description, ConfidenceScore
+) on $left.SourceIP == $right.NetworkIP
+| extend
+    Severity = iff(ConfidenceScore >= 90, "CRITICAL", "HIGH"),
+    MITRE = "T1190",
+    AttackType = "Inbound Connection from Known Malicious IP",
+    RecommendedAction = "Block IP immediately, review firewall logs, check destination host for compromise"
+| project TimeGenerated, SourceIP, DestinationIP, DestinationPort, ThreatType, Description, ConfidenceScore, Severity, MITRE, RecommendedAction

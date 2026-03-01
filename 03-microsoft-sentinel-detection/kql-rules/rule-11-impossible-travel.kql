@@ -1,0 +1,23 @@
+// RULE 11 — Impossible Travel (Multi-Country Login)
+// MITRE: T1078 | Severity: HIGH | Tactic: Initial Access
+// Trigger: Same account logs in from 2 countries within 1 hour (impossible physically)
+// ─────────────────────────────────────────────────────────────────────────────
+SigninLogs
+| where TimeGenerated >= ago(2h)
+| where ResultType == 0  // Successful sign-in
+| summarize
+    Countries = make_set(Location),
+    IPs = make_set(IPAddress),
+    UniqueCountries = dcount(Location),
+    LoginTimes = make_list(TimeGenerated),
+    FirstLogin = min(TimeGenerated),
+    LastLogin = max(TimeGenerated)
+    by UserPrincipalName, bin(TimeGenerated, 1h)
+| where UniqueCountries >= 2
+| extend
+    TimeDiffMinutes = datetime_diff('minute', LastLogin, FirstLogin),
+    Severity = iff(UniqueCountries >= 3, "CRITICAL", "HIGH"),
+    MITRE = "T1078",
+    AttackType = "Impossible Travel — Likely Account Compromise",
+    RecommendedAction = "Disable account immediately, reset MFA, contact user out-of-band, escalate L2"
+| project TimeGenerated, UserPrincipalName, Countries, UniqueCountries, IPs, TimeDiffMinutes, Severity, MITRE, RecommendedAction

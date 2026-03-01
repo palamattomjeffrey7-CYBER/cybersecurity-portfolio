@@ -1,0 +1,23 @@
+// RULE 08 — Pass-the-Hash / Lateral Movement
+// MITRE: T1550.002 | Severity: HIGH | Tactic: Lateral Movement
+// Trigger: NTLM logon with no corresponding Kerberos — pass-the-hash pattern
+// ─────────────────────────────────────────────────────────────────────────────
+SecurityEvent
+| where TimeGenerated >= ago(1h)
+| where EventID == 4624
+| where LogonType == 3  // Network logon
+| where AuthenticationPackageName == "NTLM"
+| where TargetUserName !endswith "$"  // Exclude machine accounts
+| where IpAddress != "127.0.0.1" and IpAddress != "-"
+| summarize
+    NTLMLogons = count(),
+    TargetHosts = make_set(Computer),
+    UniqueTargets = dcount(Computer)
+    by TargetUserName, IpAddress, bin(TimeGenerated, 30m)
+| where NTLMLogons >= 3 or UniqueTargets >= 2
+| extend
+    Severity = "HIGH",
+    MITRE = "T1550.002",
+    AttackType = "Possible Pass-the-Hash",
+    RecommendedAction = "Investigate source host, check for credential dumping tools, escalate L2"
+| project TimeGenerated, TargetUserName, IpAddress, NTLMLogons, UniqueTargets, TargetHosts, Severity, MITRE, RecommendedAction

@@ -1,0 +1,137 @@
+{
+  "report_id": "HUNT-20260301-1121",
+  "attack_chain": [
+    "STEP 1 \u2014 INITIAL ACCESS ATTEMPT: Brute force detected against 1 account(s)",
+    "STEP 2 \u2014 CREDENTIAL ATTACK: Password spray from 2 IP(s) targeting 8 accounts",
+    "STEP 3 \u2014 ACCOUNT COMPROMISE: 1 account(s) compromised after brute force: jsmith",
+    "STEP 4 \u2014 LATERAL MOVEMENT: Attacker moved to 4 host(s) via RDP: WKSTN-07, FILE-SERVER-01, WKSTN-01",
+    "STEP 5 \u2014 EXECUTION: 1 suspicious process(es) executed (PowerShell/credential dumping)",
+    "STEP 6 \u2014 CREDENTIAL DUMPING: LSASS memory access detected \u2014 credentials likely stolen",
+    "STEP 7 \u2014 PERSISTENCE: New admin account created \u2014 attacker establishing backdoor",
+    "STEP 8 \u2014 PERSISTENCE: Malicious scheduled task created \u2014 likely C2 beacon setup"
+  ],
+  "findings": {
+    "brute_force": [
+      {
+        "account": "jsmith",
+        "source_ip": "45.142.212.100",
+        "attempts_in_window": 12,
+        "first_seen": "2024-01-15 08:00:01",
+        "malicious_ip": true
+      }
+    ],
+    "password_spray": [
+      {
+        "source_ip": "45.142.212.100",
+        "unique_accounts_targeted": 8,
+        "total_attempts": 19,
+        "accounts": [
+          "finance_user",
+          "helpdesk",
+          "admin",
+          "ceo_account",
+          "hr_manager",
+          "svc_backup",
+          "administrator",
+          "jsmith"
+        ],
+        "malicious_ip": true
+      },
+      {
+        "source_ip": "91.108.4.200",
+        "unique_accounts_targeted": 5,
+        "total_attempts": 5,
+        "accounts": [
+          "kwong",
+          "awhite",
+          "mthompson",
+          "rjones",
+          "bwilson"
+        ],
+        "malicious_ip": true
+      }
+    ],
+    "success_after_failure": [
+      {
+        "account": "jsmith",
+        "failed_attempts": 12,
+        "failure_source_ip": "45.142.212.100",
+        "success_source_ip": "45.142.212.100",
+        "success_time": "2024-01-15 08:02:05",
+        "verdict": "ACCOUNT LIKELY COMPROMISED"
+      }
+    ],
+    "lateral_movement": [
+      {
+        "account": "jsmith",
+        "unique_hosts_accessed": 4,
+        "hosts": [
+          "WKSTN-07",
+          "FILE-SERVER-01",
+          "WKSTN-01",
+          "SQL-SERVER-01"
+        ],
+        "source_ips": [
+          "10.0.1.50"
+        ],
+        "severity": "HIGH"
+      }
+    ],
+    "suspicious_processes": [
+      {
+        "user": "jsmith",
+        "computer": "SQL-SERVER-01",
+        "process": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "command_line": "powershell -nop -windowstyle hidden -encodedcommand SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABp...",
+        "indicators": [
+          "PowerShell encoded command",
+          "PowerShell AMSI bypass indicator",
+          "Hidden window execution"
+        ],
+        "timestamp": "2024-01-15T08:40:00Z",
+        "severity": "CRITICAL"
+      }
+    ],
+    "privilege_escalation": [
+      {
+        "type": "LSASS Memory Access Attempt",
+        "user": "jsmith",
+        "computer": "SQL-SERVER-01",
+        "object": "\\Device\\HarddiskVolume3\\Windows\\System32\\lsass.exe",
+        "process": "mimikatz.exe",
+        "timestamp": "2024-01-15T08:41:30Z",
+        "severity": "CRITICAL",
+        "mitre": "T1003.001"
+      },
+      {
+        "type": "New User Account Created",
+        "created_by": "jsmith",
+        "new_account": "svc_hidden_backdoor",
+        "computer": "DC01",
+        "timestamp": "2024-01-15T08:55:00Z",
+        "severity": "HIGH",
+        "mitre": "T1136.001"
+      },
+      {
+        "type": "Account Added to Admin Group",
+        "added_by": "jsmith",
+        "account": "svc_hidden_backdoor",
+        "group": "Administrators",
+        "computer": "DC01",
+        "timestamp": "2024-01-15T08:55:30Z",
+        "severity": "CRITICAL",
+        "mitre": "T1078"
+      },
+      {
+        "type": "Scheduled Task Created",
+        "created_by": "svc_hidden_backdoor",
+        "task_name": "\\Microsoft\\Windows\\Update\\SystemUpdate",
+        "computer": "DC01",
+        "suspicious_content": true,
+        "timestamp": "2024-01-15T09:00:00Z",
+        "severity": "CRITICAL",
+        "mitre": "T1053.005"
+      }
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+From: it-support@micros0ft-helpdesk.com
+To: finance.team@company.com
+Date: Wed, 17 Jan 2024 14:05:22 +0000
+Subject: [IMPORTANT] Microsoft 365 License Expiring - Update Payment Now
+Message-ID: <20240117140522.xyz789@micros0ft-helpdesk.com>
+X-Originating-IP: 91.108.4.200
+X-Mailer: PHPMailer 6.0
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="boundary_xyz"
+Received: from bogus.relay.ru (91.108.4.200) by mx.company.com
+Return-Path: noreply@micros0ft-helpdesk.com
+X-Spam-Status: No, score=3.1
+
+--boundary_xyz
+Content-Type: text/html; charset=UTF-8
+
+<!DOCTYPE html>
+<html>
+<body style="font-family:Arial,sans-serif;">
+<img src="http://tracking.phishkit.xyz/open?id=abc123&email=finance.team@company.com" width="1" height="1"/>
+
+<p>Dear IT Administrator,</p>
+
+<p>Your organization's Microsoft 365 subscription expires in <b>2 days</b>. 
+To avoid service disruption for all 250 users, please update your payment information immediately.</p>
+
+<p>Login to your admin portal: 
+<a href="http://m365-renew.phishkit.xyz/admin?token=eyJhbGciOiJIUzI1NiJ9">
+https://admin.microsoft.com/renew</a></p>
+
+<p>Or call our billing team: <a href="http://voice.phishkit.xyz/call">Click to call</a></p>
+
+<p>Please find your invoice attached below.</p>
+
+<p>File MD5: 5d41402abc4b2a76b9719d911017c592</p>
+
+<p>— Microsoft Support Team</p>
+</body>
+</html>
+
+--boundary_xyz
+Content-Type: application/pdf
+Content-Disposition: attachment; filename="Invoice_M365_Jan2024.pdf"
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQKJcOkw7zDtsOfCjIgMCBvYmoKPDwvTGVuZ3RoIDMgMCBSL0ZpbHRlci9GbGF0ZURl
+Y29kZT4+CnN0cmVhbQp4nCvkAgAA//8DAAUEAgs=
+
+--boundary_xyz--

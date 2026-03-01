@@ -1,0 +1,17 @@
+`comment("Hunt 04 — Lateral Movement via RDP")`
+`comment("MITRE ATT&CK: T1021.001 — Remote Desktop Protocol")`
+`comment("Hypothesis: After gaining credentials, the adversary is using RDP to move laterally.")`
+`comment("Threshold: Single account RDP login to 3+ distinct hosts in 1 hour")`
+
+index=wineventlog sourcetype=WinEventLog:Security EventCode=4624 Logon_Type=10
+| bin _time span=1h
+| stats dc(ComputerName) as UniqueHosts
+        values(ComputerName) as HostList
+        count as RDPSessions
+        by Account_Name src_ip
+| where UniqueHosts >= 3
+| eval Severity = if(UniqueHosts >= 5, "CRITICAL", "HIGH")
+| eval MITRE = "T1021.001"
+| eval Action = "Verify with user, isolate affected hosts, check each host for compromise indicators"
+| sort - UniqueHosts
+| table _time Account_Name src_ip UniqueHosts RDPSessions HostList Severity MITRE Action

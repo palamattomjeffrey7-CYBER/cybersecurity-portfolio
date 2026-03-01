@@ -1,0 +1,110 @@
+{
+  "ticket_id": "INC-20260301-3081",
+  "severity": "CRITICAL",
+  "score": 180,
+  "iocs": {
+    "ips": [
+      "91.108.4.200"
+    ],
+    "urls": [
+      "https://admin.microsoft.com/renew",
+      "http://m365-renew.phishkit.xyz/admin?token=eyJhbGciOiJIUzI1NiJ9",
+      "http://voice.phishkit.xyz/call",
+      "http://tracking.phishkit.xyz/open?id=abc123&email=finance.team@company.com"
+    ],
+    "domains": [
+      "m365-renew.phishkit.xyz",
+      "admin.microsoft.com",
+      "tracking.phishkit.xyz",
+      "voice.phishkit.xyz"
+    ],
+    "hashes": [
+      "5d41402abc4b2a76b9719d911017c592"
+    ],
+    "emails": [
+      "it-support@micros0ft-helpdesk.com",
+      "noreply@micros0ft-helpdesk.com",
+      "20240117140522.xyz789@micros0ft-helpdesk.com",
+      "finance.team@company.com"
+    ],
+    "attachments": [
+      "Invoice_M365_Jan2024.pdf"
+    ]
+  },
+  "threat_intel": {
+    "malicious_ips": [
+      {
+        "ioc": "91.108.4.200",
+        "abuse_score": 87,
+        "country": "RU",
+        "reports": 312,
+        "source": "AbuseIPDB [SIMULATED]"
+      }
+    ],
+    "malicious_domains": [
+      {
+        "ioc": "m365-renew.phishkit.xyz",
+        "vt_score": "55/90",
+        "category": "Phishing",
+        "first_seen": "2024-01-15",
+        "source": "VirusTotal [SIMULATED]"
+      },
+      {
+        "ioc": "tracking.phishkit.xyz",
+        "vt_score": "67/90",
+        "category": "Phishing/C2",
+        "first_seen": "2023-12-01",
+        "source": "VirusTotal [SIMULATED]"
+      },
+      {
+        "ioc": "voice.phishkit.xyz",
+        "vt_score": "67/90",
+        "category": "Phishing/C2",
+        "first_seen": "2023-12-01",
+        "source": "VirusTotal [SIMULATED]"
+      }
+    ],
+    "malicious_hashes": [
+      {
+        "ioc": "5d41402abc4b2a76b9719d911017c592",
+        "vt_score": "28/70",
+        "threat_name": "Dropper.Agent",
+        "severity": "HIGH",
+        "source": "VirusTotal [SIMULATED]"
+      }
+    ],
+    "suspicious_emails": []
+  },
+  "mitre_techniques": [
+    {
+      "id": "T1566.001",
+      "name": "Phishing: Spearphishing Attachment",
+      "tactic": "Initial Access"
+    },
+    {
+      "id": "T1566.002",
+      "name": "Phishing: Spearphishing Link",
+      "tactic": "Initial Access"
+    },
+    {
+      "id": "T1071.001",
+      "name": "Application Layer Protocol: Web Protocols",
+      "tactic": "Command and Control"
+    },
+    {
+      "id": "T1204.002",
+      "name": "User Execution: Malicious File",
+      "tactic": "Execution"
+    },
+    {
+      "id": "T1027",
+      "name": "Obfuscated Files or Information",
+      "tactic": "Defense Evasion"
+    },
+    {
+      "id": "T1598.003",
+      "name": "Phishing for Information: Spearphishing Link",
+      "tactic": "Reconnaissance"
+    }
+  ]
+}

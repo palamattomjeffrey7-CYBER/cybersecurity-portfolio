@@ -1,0 +1,111 @@
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║              SOC INCIDENT TICKET — PHISHING ANALYSIS REPORT                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+TICKET ID    : INC-20260228-2784
+CREATED      : 2026-02-28 14:50:05 UTC
+ANALYST      : Jeffrey Roshan Palamattom (L1 SOC)
+SOURCE       : Phishing Email Analyzer v1.0
+EMAIL FILE   : phishing_sample_1.eml
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SEVERITY ASSESSMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ⚠  SEVERITY : [CRITICAL]
+  📊 SCORE    : 155/200
+  🎯 VERDICT  : MALICIOUS — IMMEDIATE ACTION REQUIRED
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXTRACTED IOCs
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [IPs Found]: 1
+    • 185.220.101.47
+
+  [URLs Found]: 3
+    • http://paypal-secure-verify.ru/login?ref=9f3a2b1c
+    • http://www.paypal.com/verify-account
+    • http://cdn.paypa1-verification.com/files/account_statement.pdf.exe
+
+  [Domains Found]: 3
+    • paypal.com
+    • paypal-secure-verify.ru
+    • cdn.paypa1-verification.com
+
+  [File Hashes Found]: 1
+    • d41d8cd98f00b204e9800998ecf8427e
+
+  [Email Addresses Found]: 5
+    • security-alert@paypa1-verification.com
+    • john.smith@company.com
+    • documents@paypa1-verify.net
+    • 20240115092341.1a2b3c@paypa1-verification.com
+    • bounce@paypa1-verification.com
+
+  [Attachments Found]: 0
+    None
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THREAT INTELLIGENCE RESULTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [MALICIOUS IPs — AbuseIPDB]:
+    ✗ 185.220.101.47 | Score: 98/100 | Country: NL | Reports: 847
+
+  [MALICIOUS DOMAINS — VirusTotal]:
+    ✗ paypal-secure-verify.ru | VT: 71/90 | Category: Credential Harvesting
+    ✗ cdn.paypa1-verification.com | VT: 45/90 | Category: Phishing
+
+  [MALICIOUS FILE HASHES — VirusTotal]:
+    ✗ d41d8cd98f00b204e980... | VT: 32/70 | Threat: Trojan.GenericKD
+
+  [SUSPICIOUS SENDER ADDRESSES]:
+    None identified
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SOCIAL ENGINEERING INDICATORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Keywords detected: 7
+    • "urgent"
+    • "suspended"
+    • "unusual activity"
+    • "your account will be"
+    • "action required"
+    • "within 24 hours"
+    • "permanently suspended"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MITRE ATT&CK MAPPING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [Initial Access] T1566.001 — Phishing: Spearphishing Attachment
+  [Initial Access] T1566.002 — Phishing: Spearphishing Link
+  [Command and Control] T1071.001 — Application Layer Protocol: Web Protocols
+  [Defense Evasion] T1027 — Obfuscated Files or Information
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RECOMMENDED ACTIONS [CRITICAL]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. IMMEDIATELY block all identified IPs and domains at perimeter firewall
+  2. Quarantine the email from all mailboxes using email gateway
+  3. Isolate any endpoint that may have clicked the link
+  4. Escalate to L2/L3 SOC analyst within 15 minutes
+  5. Initiate Incident Response Playbook: Phishing
+  6. Notify CISO and management per escalation matrix
+  7. Preserve email headers and attachments as forensic evidence
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SLA TARGETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Time to Triage (TTT)     : 15 min
+  Time to Qualify (TTQ)    : 30 min
+  Escalation Required      : YES — L2 + CISO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+END OF TICKET: INC-20260228-2784
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

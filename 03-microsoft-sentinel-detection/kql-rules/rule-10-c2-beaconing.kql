@@ -1,0 +1,25 @@
+// RULE 10 — C2 Beaconing Detection
+// MITRE: T1071.001 | Severity: HIGH | Tactic: Command and Control
+// Trigger: Regular periodic outbound connections — beaconing behaviour
+// ─────────────────────────────────────────────────────────────────────────────
+CommonSecurityLog
+| where TimeGenerated >= ago(6h)
+| where DeviceVendor == "Palo Alto Networks"
+| where DeviceAction == "allow"
+| where DestinationPort in (80, 443, 8080, 8443)
+| summarize
+    ConnectionCount = count(),
+    BytesSent = sum(SentBytes),
+    BytesReceived = sum(ReceivedBytes),
+    TimeGaps = make_list(TimeGenerated)
+    by SourceIP, DestinationIP, DestinationPort, bin(TimeGenerated, 1h)
+| where ConnectionCount >= 20
+| extend
+    AvgBytesSent = BytesSent / ConnectionCount,
+    // Small, consistent payload size = beaconing
+    Severity = iff(AvgBytesSent < 500 and ConnectionCount >= 30, "HIGH", "MEDIUM"),
+    MITRE = "T1071.001",
+    AttackType = "Potential C2 Beaconing",
+    RecommendedAction = "Block destination IP, capture traffic, submit to sandbox, escalate L2"
+| where Severity == "HIGH"
+| project TimeGenerated, SourceIP, DestinationIP, DestinationPort, ConnectionCount, BytesSent, AvgBytesSent, Severity, MITRE, AttackType, RecommendedAction

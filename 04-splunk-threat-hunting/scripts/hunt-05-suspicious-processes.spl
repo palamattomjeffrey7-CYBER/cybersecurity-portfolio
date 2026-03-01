@@ -1,0 +1,25 @@
+`comment("Hunt 05 — Suspicious Process Execution")`
+`comment("MITRE ATT&CK: T1059.001 (PowerShell), T1003.001 (LSASS Dump)")`
+`comment("Hypothesis: The adversary is executing reconnaissance tools or credential dumpers.")`
+
+index=wineventlog sourcetype=WinEventLog:Security EventCode=4688
+| search CommandLine IN ("*-enc*", "*-encodedcommand*", "*downloadstring*",
+    "*invoke-expression*", "*iex*", "*net.webclient*", "*frombase64string*",
+    "*lsass*", "*mimikatz*", "*procdump*", "*sekurlsa*",
+    "*whoami*", "*net user*", "*net group*", "*systeminfo*")
+| eval ThreatCategory = case(
+    match(CommandLine, "(?i)(lsass|mimikatz|procdump|sekurlsa)"), "CREDENTIAL_DUMP",
+    match(CommandLine, "(?i)(enc|encodedcommand|downloadstring|iex|frombase64)"), "SUSPICIOUS_POWERSHELL",
+    match(CommandLine, "(?i)(whoami|net user|net group|systeminfo)"), "RECONNAISSANCE",
+    true(), "OTHER")
+| eval Severity = case(
+    ThreatCategory=="CREDENTIAL_DUMP", "CRITICAL",
+    ThreatCategory=="SUSPICIOUS_POWERSHELL", "HIGH",
+    true(), "MEDIUM")
+| eval MITRE = case(
+    ThreatCategory=="CREDENTIAL_DUMP", "T1003.001",
+    ThreatCategory=="SUSPICIOUS_POWERSHELL", "T1059.001",
+    true(), "T1082")
+| stats count by ComputerName Account_Name CommandLine ThreatCategory Severity MITRE
+| sort - Severity
+| table ComputerName Account_Name CommandLine ThreatCategory Severity MITRE count

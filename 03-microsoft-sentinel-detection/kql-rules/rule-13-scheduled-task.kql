@@ -1,0 +1,16 @@
+// RULE 13 — Scheduled Task Created (Persistence Mechanism)
+// MITRE: T1053.005 | Severity: MEDIUM | Tactic: Persistence
+// Trigger: Scheduled task created by non-system account
+// ─────────────────────────────────────────────────────────────────────────────
+SecurityEvent
+| where TimeGenerated >= ago(24h)
+| where EventID == 4698  // Scheduled task created
+| extend TaskXML = TaskContent
+| where SubjectUserName !endswith "$"  // Not a system/machine account
+| where SubjectUserName !in ("SYSTEM", "LOCAL SERVICE", "NETWORK SERVICE")
+| extend
+    Severity = iff(TaskXML has_any ("powershell", "cmd", "wscript", "mshta", "rundll32"), "HIGH", "MEDIUM"),
+    MITRE = "T1053.005",
+    AttackType = "Scheduled Task Created — Possible Persistence",
+    RecommendedAction = "Verify with system owner, delete if unauthorized, investigate creating user"
+| project TimeGenerated, Computer, SubjectUserName, TaskName, TaskXML, Severity, MITRE, RecommendedAction

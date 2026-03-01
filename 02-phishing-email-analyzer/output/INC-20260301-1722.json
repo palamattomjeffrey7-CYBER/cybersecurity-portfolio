@@ -1,0 +1,90 @@
+{
+  "ticket_id": "INC-20260301-1722",
+  "severity": "CRITICAL",
+  "score": 155,
+  "iocs": {
+    "ips": [
+      "185.220.101.47"
+    ],
+    "urls": [
+      "http://www.paypal.com/verify-account",
+      "http://paypal-secure-verify.ru/login?ref=9f3a2b1c",
+      "http://cdn.paypa1-verification.com/files/account_statement.pdf.exe"
+    ],
+    "domains": [
+      "paypal-secure-verify.ru",
+      "paypal.com",
+      "cdn.paypa1-verification.com"
+    ],
+    "hashes": [
+      "d41d8cd98f00b204e9800998ecf8427e"
+    ],
+    "emails": [
+      "bounce@paypa1-verification.com",
+      "security-alert@paypa1-verification.com",
+      "documents@paypa1-verify.net",
+      "john.smith@company.com",
+      "20240115092341.1a2b3c@paypa1-verification.com"
+    ],
+    "attachments": []
+  },
+  "threat_intel": {
+    "malicious_ips": [
+      {
+        "ioc": "185.220.101.47",
+        "abuse_score": 98,
+        "country": "NL",
+        "reports": 847,
+        "source": "AbuseIPDB [SIMULATED]"
+      }
+    ],
+    "malicious_domains": [
+      {
+        "ioc": "paypal-secure-verify.ru",
+        "vt_score": "71/90",
+        "category": "Credential Harvesting",
+        "first_seen": "2024-01-08",
+        "source": "VirusTotal [SIMULATED]"
+      },
+      {
+        "ioc": "cdn.paypa1-verification.com",
+        "vt_score": "45/90",
+        "category": "Phishing",
+        "first_seen": "2024-01-10",
+        "source": "VirusTotal [SIMULATED]"
+      }
+    ],
+    "malicious_hashes": [
+      {
+        "ioc": "d41d8cd98f00b204e9800998ecf8427e",
+        "vt_score": "32/70",
+        "threat_name": "Trojan.GenericKD",
+        "severity": "HIGH",
+        "source": "VirusTotal [SIMULATED]"
+      }
+    ],
+    "suspicious_emails": []
+  },
+  "mitre_techniques": [
+    {
+      "id": "T1566.001",
+      "name": "Phishing: Spearphishing Attachment",
+      "tactic": "Initial Access"
+    },
+    {
+      "id": "T1566.002",
+      "name": "Phishing: Spearphishing Link",
+      "tactic": "Initial Access"
+    },
+    {
+      "id": "T1071.001",
+      "name": "Application Layer Protocol: Web Protocols",
+      "tactic": "Command and Control"
+    },
+    {
+      "id": "T1027",
+      "name": "Obfuscated Files or Information",
+      "tactic": "Defense Evasion"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+// RULE 15 — Threat Intelligence IP Match — Inbound Connection
+// MITRE: T1190 | Severity: HIGH | Tactic: Initial Access
+// Trigger: Inbound connection from known TI feed malicious IP
+// ─────────────────────────────────────────────────────────────────────────────
+let ThreatIntelIPs =
+    ThreatIntelligenceIndicator
+    | where TimeGenerated >= ago(7d)
+    | where Active == true
+    | where isnotempty(NetworkIP)
+    | where ConfidenceScore >= 75
+    | distinct NetworkIP;
+CommonSecurityLog
+| where TimeGenerated >= ago(1h)
+| where SourceIP in (ThreatIntelIPs)
+| where DeviceAction !in ("drop", "deny", "block")  // Connections that got THROUGH
+| join kind=leftouter (
+    ThreatIntelligenceIndicator
+    | where Active == true
+    | where isnotempty(NetworkIP)
+    | project NetworkIP, ThreatType, Description, ConfidenceScore
+) on $left.SourceIP == $right.NetworkIP
+| extend
+    Severity = iff(ConfidenceScore >= 90, "CRITICAL", "HIGH"),
+    MITRE = "T1190",
+    AttackType = "Inbound Connection from Known Malicious IP",
+    RecommendedAction = "Block IP immediately, review firewall logs, check destination host for compromise"
+| project TimeGenerated, SourceIP, DestinationIP, DestinationPort, ThreatType, Description, ConfidenceScore, Severity, MITRE, RecommendedAction

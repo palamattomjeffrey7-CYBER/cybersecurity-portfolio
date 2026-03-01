@@ -1,0 +1,21 @@
+// RULE 03 — Successful Login After Brute Force
+// MITRE: T1078 | Severity: CRITICAL | Tactic: Initial Access
+// Trigger: Account logs in successfully within 10 min of brute force activity
+// ─────────────────────────────────────────────────────────────────────────────
+let bruteForceAccounts =
+    SecurityEvent
+    | where TimeGenerated >= ago(2h)
+    | where EventID == 4625
+    | summarize FailCount = count() by TargetAccount, bin(TimeGenerated, 5m)
+    | where FailCount >= 5
+    | distinct TargetAccount;
+SecurityEvent
+| where TimeGenerated >= ago(2h)
+| where EventID == 4624  // Successful logon
+| where TargetUserName in (bruteForceAccounts)
+| extend
+    Severity = "CRITICAL",
+    MITRE = "T1078",
+    AttackType = "Account Compromise Post-Brute-Force",
+    RecommendedAction = "IMMEDIATE: Reset credentials, revoke sessions, isolate if possible, escalate L2+L3"
+| project TimeGenerated, TargetUserName, IpAddress, LogonType, Severity, MITRE, RecommendedAction

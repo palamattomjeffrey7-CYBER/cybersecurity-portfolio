@@ -1,0 +1,24 @@
+// RULE 01 — Brute Force Attack (Multiple Failed Logins)
+// MITRE: T1110 | Severity: HIGH | Tactic: Credential Access
+// Trigger: 10+ failed logins to same account within 5 minutes
+// ─────────────────────────────────────────────────────────────────────────────
+let threshold = 10;
+let timeWindow = 5m;
+SecurityEvent
+| where TimeGenerated >= ago(1h)
+| where EventID == 4625  // Failed logon
+| summarize
+    FailedAttempts = count(),
+    DistinctSources = dcount(IpAddress),
+    SourceIPs = make_set(IpAddress),
+    FirstAttempt = min(TimeGenerated),
+    LastAttempt = max(TimeGenerated)
+    by TargetAccount, bin(TimeGenerated, timeWindow)
+| where FailedAttempts >= threshold
+| extend
+    DurationMinutes = datetime_diff('minute', LastAttempt, FirstAttempt),
+    AttackType = iff(DistinctSources > 3, "Distributed Brute Force", "Single-Source Brute Force"),
+    Severity = "HIGH",
+    MITRE = "T1110",
+    RecommendedAction = "Block source IP, lock account, escalate to L2"
+| project TimeGenerated, TargetAccount, FailedAttempts, DistinctSources, SourceIPs, AttackType, Severity, MITRE, RecommendedAction

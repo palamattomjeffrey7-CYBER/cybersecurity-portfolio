@@ -1,0 +1,26 @@
+`comment("===================================================================")`
+`comment("Hunt 01 — Brute Force Attack Detection")`
+`comment("Author: Jeffrey Roshan Palamattom | L1 SOC Analyst")`
+`comment("MITRE ATT&CK: T1110 — Brute Force")`
+`comment("Hypothesis: An adversary is attempting to gain access to accounts")`
+`comment("           by systematically trying common passwords.")`
+`comment("Data Source: Windows Security Events (EventCode 4625)")`
+`comment("Threshold: 10+ failed logins to same account within 5 minutes")`
+`comment("===================================================================")`
+
+index=wineventlog sourcetype=WinEventLog:Security EventCode=4625
+| bin _time span=5m
+| stats count as FailedAttempts
+        dc(src_ip) as DistinctSources
+        values(src_ip) as SourceIPs
+        earliest(_time) as FirstAttempt
+        latest(_time) as LastAttempt
+        by Account_Name
+| where FailedAttempts >= 10
+| eval AttackType = if(DistinctSources > 3, "Distributed Brute Force", "Single-Source Brute Force")
+| eval DurationSec = LastAttempt - FirstAttempt
+| eval Severity = "HIGH"
+| eval MITRE = "T1110"
+| eval Action = "Block source IP, lock account, check for subsequent 4624, escalate to L2"
+| sort - FailedAttempts
+| table _time Account_Name FailedAttempts DistinctSources SourceIPs AttackType DurationSec Severity MITRE Action

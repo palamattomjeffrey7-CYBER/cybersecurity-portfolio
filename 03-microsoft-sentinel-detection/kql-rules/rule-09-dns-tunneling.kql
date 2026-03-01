@@ -1,0 +1,22 @@
+// RULE 09 — DNS Tunneling Detection
+// MITRE: T1048.001 | Severity: HIGH | Tactic: Exfiltration
+// Trigger: High volume of DNS queries to single domain (tunneling indicator)
+// ─────────────────────────────────────────────────────────────────────────────
+DnsEvents
+| where TimeGenerated >= ago(1h)
+| where SubType == "LookupQuery"
+| extend BaseDomain = tostring(split(Name, ".")[-2]) + "." + tostring(split(Name, ".")[-1])
+| summarize
+    QueryCount = count(),
+    UniqueSubdomains = dcount(Name),
+    AvgNameLength = avg(strlen(Name)),
+    MaxNameLength = max(strlen(Name)),
+    SampleQueries = make_set(Name, 5)
+    by ClientIP, BaseDomain, bin(TimeGenerated, 10m)
+| where QueryCount >= 100 or UniqueSubdomains >= 50 or AvgNameLength >= 40
+| extend
+    Severity = iff(QueryCount >= 500 or AvgNameLength >= 50, "CRITICAL", "HIGH"),
+    MITRE = "T1048.001",
+    AttackType = "Possible DNS Tunneling / Data Exfiltration",
+    RecommendedAction = "Block domain at DNS, capture traffic with Wireshark, escalate L2"
+| project TimeGenerated, ClientIP, BaseDomain, QueryCount, UniqueSubdomains, AvgNameLength, SampleQueries, Severity, MITRE, RecommendedAction

@@ -1,0 +1,18 @@
+`comment("Hunt 03 — Successful Login After Brute Force (Account Compromise)")`
+`comment("MITRE ATT&CK: T1078 — Valid Accounts")`
+`comment("Hypothesis: The adversary successfully guessed credentials after brute force activity.")`
+`comment("Severity: CRITICAL — confirms account compromise, not just an attempt")`
+
+index=wineventlog sourcetype=WinEventLog:Security EventCode=4625
+| stats count as FailedAttempts by src_ip Account_Name
+| where FailedAttempts >= 5
+| join type=inner src_ip Account_Name
+    [search index=wineventlog sourcetype=WinEventLog:Security EventCode=4624
+    | rename Account_Name as Account_Name
+    | stats earliest(_time) as LoginTime by src_ip Account_Name]
+| eval LoginTime_fmt = strftime(LoginTime, "%Y-%m-%d %H:%M:%S")
+| eval Severity = "CRITICAL"
+| eval MITRE = "T1078"
+| eval Action = "IMMEDIATE: Reset credentials, revoke sessions, isolate endpoint, escalate L2+L3"
+| sort - FailedAttempts
+| table src_ip Account_Name FailedAttempts LoginTime_fmt Severity MITRE Action

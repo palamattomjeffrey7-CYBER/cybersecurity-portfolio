@@ -1,0 +1,91 @@
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║            THREAT HUNTING REPORT — SOC ANALYST JEFFREY PALAMATTOM          ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+REPORT ID    : HUNT-20260301-1121
+GENERATED    : 2026-03-01 11:21:51 UTC
+ANALYST      : Jeffrey Roshan Palamattom (L1 SOC)
+LOG FILE     : windows_security_events.json
+EVENTS PARSED: 37
+HUNT QUERIES : 6
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXECUTIVE SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Total Findings  : 10
+  Critical Alerts : 4
+  Attack Chain    : FULL ATTACK CHAIN RECONSTRUCTED
+  
+  OVERALL ASSESSMENT: ⚠ ACTIVE INTRUSION — IMMEDIATE INCIDENT RESPONSE REQUIRED
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RECONSTRUCTED ATTACK CHAIN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  STEP 1 — INITIAL ACCESS ATTEMPT: Brute force detected against 1 account(s)
+  STEP 2 — CREDENTIAL ATTACK: Password spray from 2 IP(s) targeting 8 accounts
+  STEP 3 — ACCOUNT COMPROMISE: 1 account(s) compromised after brute force: jsmith
+  STEP 4 — LATERAL MOVEMENT: Attacker moved to 4 host(s) via RDP: WKSTN-07, FILE-SERVER-01, WKSTN-01
+  STEP 5 — EXECUTION: 1 suspicious process(es) executed (PowerShell/credential dumping)
+  STEP 6 — CREDENTIAL DUMPING: LSASS memory access detected — credentials likely stolen
+  STEP 7 — PERSISTENCE: New admin account created — attacker establishing backdoor
+  STEP 8 — PERSISTENCE: Malicious scheduled task created — likely C2 beacon setup
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HUNT 1 — BRUTE FORCE ATTACK (EventID 4625)  |  MITRE: T1110
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Findings: 1
+  ✗ Account: jsmith | IP: 45.142.212.100 | Attempts: 12 | Known Bad IP: True
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HUNT 2 — PASSWORD SPRAY (1 IP → Many Accounts)  |  MITRE: T1110.003
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Findings: 2
+  ✗ IP: 45.142.212.100 | Targeted 8 accounts | Total attempts: 19
+  ✗ IP: 91.108.4.200 | Targeted 5 accounts | Total attempts: 5
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HUNT 3 — COMPROMISE: SUCCESS AFTER BRUTE FORCE  |  MITRE: T1078
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Findings: 1
+  ✗ Account: jsmith | Failed from: 45.142.212.100 | Success from: 45.142.212.100 | ACCOUNT LIKELY COMPROMISED
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HUNT 4 — LATERAL MOVEMENT VIA RDP  |  MITRE: T1021.001
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Findings: 1
+  ✗ Account: jsmith | Accessed 4 hosts: WKSTN-07, FILE-SERVER-01, WKSTN-01, SQL-SERVER-01
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HUNT 5 — SUSPICIOUS PROCESSES  |  MITRE: T1059.001, T1003.001
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Findings: 1
+  ✗ [CRITICAL] User: jsmith | Host: SQL-SERVER-01 | Indicators: PowerShell encoded command, PowerShell AMSI bypass indicator, Hidden window execution
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HUNT 6 — PRIVILEGE ESCALATION & PERSISTENCE  |  MITRE: T1003, T1136, T1053
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Findings: 4
+  ✗ [CRITICAL] LSASS Memory Access Attempt | jsmith on SQL-SERVER-01
+  ✗ [HIGH] New User Account Created | jsmith on DC01
+  ✗ [CRITICAL] Account Added to Admin Group | ? on DC01
+  ✗ [CRITICAL] Scheduled Task Created | svc_hidden_backdoor on DC01
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RECOMMENDED IMMEDIATE ACTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. ISOLATE all hosts identified in attack chain from the network
+  2. RESET credentials for all compromised/targeted accounts
+  3. DISABLE any newly created accounts (svc_hidden_backdoor)
+  4. REMOVE the malicious scheduled task from DC01
+  5. BLOCK external IPs: 91.108.4.200, 185.220.101.47, 45.142.212.100 at perimeter
+  6. ESCALATE to L2/L3 SOC and management immediately
+  7. PRESERVE event logs and memory dumps for forensic investigation
+  8. INITIATE full IR playbook — this is a confirmed intrusion
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+END OF REPORT: HUNT-20260301-1121
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

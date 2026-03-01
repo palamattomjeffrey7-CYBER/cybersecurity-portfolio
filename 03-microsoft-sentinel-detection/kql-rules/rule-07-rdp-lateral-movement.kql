@@ -1,0 +1,21 @@
+// RULE 07 — Lateral Movement via RDP
+// MITRE: T1021.001 | Severity: MEDIUM | Tactic: Lateral Movement
+// Trigger: Single account RDP login to 3+ different machines in 1 hour
+// ─────────────────────────────────────────────────────────────────────────────
+SecurityEvent
+| where TimeGenerated >= ago(1h)
+| where EventID == 4624
+| where LogonType == 10  // RemoteInteractive (RDP)
+| summarize
+    UniqueHosts = dcount(Computer),
+    Hosts = make_set(Computer),
+    SourceIPs = make_set(IpAddress),
+    SessionCount = count()
+    by TargetUserName, bin(TimeGenerated, 1h)
+| where UniqueHosts >= 3
+| extend
+    Severity = iff(UniqueHosts >= 5, "HIGH", "MEDIUM"),
+    MITRE = "T1021.001",
+    AttackType = "Lateral Movement via RDP",
+    RecommendedAction = "Verify with user, check for unauthorized access, review each host for compromise"
+| project TimeGenerated, TargetUserName, UniqueHosts, Hosts, SourceIPs, Severity, MITRE, AttackType, RecommendedAction

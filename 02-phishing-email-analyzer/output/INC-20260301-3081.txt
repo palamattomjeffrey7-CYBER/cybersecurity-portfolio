@@ -1,0 +1,111 @@
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║              SOC INCIDENT TICKET — PHISHING ANALYSIS REPORT                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+TICKET ID    : INC-20260301-3081
+CREATED      : 2026-03-01 11:21:47 UTC
+ANALYST      : Jeffrey Roshan Palamattom (L1 SOC)
+SOURCE       : Phishing Email Analyzer v1.0
+EMAIL FILE   : phishing_sample_2.eml
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SEVERITY ASSESSMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ⚠  SEVERITY : [CRITICAL]
+  📊 SCORE    : 180/200
+  🎯 VERDICT  : MALICIOUS — IMMEDIATE ACTION REQUIRED
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXTRACTED IOCs
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [IPs Found]: 1
+    • 91.108.4.200
+
+  [URLs Found]: 4
+    • https://admin.microsoft.com/renew
+    • http://m365-renew.phishkit.xyz/admin?token=eyJhbGciOiJIUzI1NiJ9
+    • http://voice.phishkit.xyz/call
+    • http://tracking.phishkit.xyz/open?id=abc123&email=finance.team@company.com
+
+  [Domains Found]: 4
+    • m365-renew.phishkit.xyz
+    • admin.microsoft.com
+    • tracking.phishkit.xyz
+    • voice.phishkit.xyz
+
+  [File Hashes Found]: 1
+    • 5d41402abc4b2a76b9719d911017c592
+
+  [Email Addresses Found]: 4
+    • it-support@micros0ft-helpdesk.com
+    • noreply@micros0ft-helpdesk.com
+    • 20240117140522.xyz789@micros0ft-helpdesk.com
+    • finance.team@company.com
+
+  [Attachments Found]: 1
+    • Invoice_M365_Jan2024.pdf
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THREAT INTELLIGENCE RESULTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [MALICIOUS IPs — AbuseIPDB]:
+    ✗ 91.108.4.200 | Score: 87/100 | Country: RU | Reports: 312
+
+  [MALICIOUS DOMAINS — VirusTotal]:
+    ✗ m365-renew.phishkit.xyz | VT: 55/90 | Category: Phishing
+    ✗ tracking.phishkit.xyz | VT: 67/90 | Category: Phishing/C2
+    ✗ voice.phishkit.xyz | VT: 67/90 | Category: Phishing/C2
+
+  [MALICIOUS FILE HASHES — VirusTotal]:
+    ✗ 5d41402abc4b2a76b971... | VT: 28/70 | Threat: Dropper.Agent
+
+  [SUSPICIOUS SENDER ADDRESSES]:
+    None identified
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SOCIAL ENGINEERING INDICATORS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Keywords detected: 3
+    • "update payment"
+    • "expires"
+    • "immediately"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MITRE ATT&CK MAPPING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [Initial Access] T1566.001 — Phishing: Spearphishing Attachment
+  [Initial Access] T1566.002 — Phishing: Spearphishing Link
+  [Command and Control] T1071.001 — Application Layer Protocol: Web Protocols
+  [Execution] T1204.002 — User Execution: Malicious File
+  [Defense Evasion] T1027 — Obfuscated Files or Information
+  [Reconnaissance] T1598.003 — Phishing for Information: Spearphishing Link
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RECOMMENDED ACTIONS [CRITICAL]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. IMMEDIATELY block all identified IPs and domains at perimeter firewall
+  2. Quarantine the email from all mailboxes using email gateway
+  3. Isolate any endpoint that may have clicked the link
+  4. Escalate to L2/L3 SOC analyst within 15 minutes
+  5. Initiate Incident Response Playbook: Phishing
+  6. Notify CISO and management per escalation matrix
+  7. Preserve email headers and attachments as forensic evidence
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SLA TARGETS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Time to Triage (TTT)     : 15 min
+  Time to Qualify (TTQ)    : 30 min
+  Escalation Required      : YES — L2 + CISO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+END OF TICKET: INC-20260301-3081
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

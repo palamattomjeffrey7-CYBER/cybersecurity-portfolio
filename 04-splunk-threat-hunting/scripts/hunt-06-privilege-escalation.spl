@@ -1,0 +1,26 @@
+`comment("Hunt 06 — Privilege Escalation & Persistence")`
+`comment("MITRE ATT&CK: T1136.001 (Account Creation), T1053.005 (Scheduled Task)")`
+`comment("Hypothesis: The adversary is creating backdoor accounts or persistence mechanisms.")`
+
+index=wineventlog sourcetype=WinEventLog:Security EventCode IN (4720, 4732, 4698)
+| eval ActivityType = case(
+    EventCode==4720, "Account Created",
+    EventCode==4732, "Added to Admin Group",
+    EventCode==4698, "Scheduled Task Created",
+    true(), "Unknown")
+| eval Severity = case(
+    EventCode==4732, "HIGH",
+    EventCode==4720, "HIGH",
+    EventCode==4698, "MEDIUM",
+    true(), "LOW")
+| eval MITRE = case(
+    EventCode IN (4720, 4732), "T1136.001",
+    EventCode==4698, "T1053.005",
+    true(), "Unknown")
+| eval Action = case(
+    EventCode==4732, "Verify authorization, disable if unauthorized, investigate creating account",
+    EventCode==4720, "Verify with IT, check if account is authorized, investigate creator",
+    EventCode==4698, "Review task content, check for C2 callbacks, delete if malicious",
+    true(), "Investigate")
+| table _time ComputerName Account_Name ActivityType Severity MITRE Action
+| sort - Severity _time

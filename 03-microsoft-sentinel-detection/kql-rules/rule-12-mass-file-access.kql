@@ -1,0 +1,19 @@
+// RULE 12 — Mass File Access / Data Exfiltration
+// MITRE: T1039 | Severity: HIGH | Tactic: Collection
+// Trigger: Single user accessing 500+ files in 15 minutes
+// ─────────────────────────────────────────────────────────────────────────────
+OfficeActivity
+| where TimeGenerated >= ago(1h)
+| where Operation in ("FileAccessed", "FileDownloaded", "FileSyncDownloadedFull")
+| summarize
+    FilesAccessed = count(),
+    UniqueFiles = dcount(SourceFileName),
+    Sites = make_set(Site_Url)
+    by UserId, bin(TimeGenerated, 15m)
+| where FilesAccessed >= 500
+| extend
+    Severity = iff(FilesAccessed >= 1000, "CRITICAL", "HIGH"),
+    MITRE = "T1039",
+    AttackType = "Mass File Access — Potential Data Exfiltration",
+    RecommendedAction = "Revoke SharePoint access, check DLP alerts, interview user, check external sharing"
+| project TimeGenerated, UserId, FilesAccessed, UniqueFiles, Sites, Severity, MITRE, RecommendedAction

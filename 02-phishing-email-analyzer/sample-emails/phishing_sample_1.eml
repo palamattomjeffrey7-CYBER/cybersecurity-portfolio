@@ -1,0 +1,39 @@
+From: security-alert@paypa1-verification.com
+To: john.smith@company.com
+Date: Mon, 15 Jan 2024 09:23:41 +0000
+Subject: URGENT: Your PayPal account has been limited - Action Required
+Message-ID: <20240115092341.1a2b3c@paypa1-verification.com>
+X-Originating-IP: 185.220.101.47
+X-Mailer: Microsoft Outlook 16.0
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+Received: from mail.paypa1-verification.com (185.220.101.47) by smtp.company.com
+Return-Path: bounce@paypa1-verification.com
+X-Spam-Status: No, score=2.4
+
+<!DOCTYPE html>
+<html>
+<body>
+<p>Dear Valued Customer,</p>
+
+<p>We have detected <b>unusual activity</b> on your PayPal account. Your account has been 
+temporarily limited until you verify your information.</p>
+
+<p>Please click the link below to restore full access to your account:</p>
+
+<p><a href="http://paypal-secure-verify.ru/login?ref=9f3a2b1c">
+http://www.paypal.com/verify-account</a></p>
+
+<p>If you do not verify within 24 hours, your account will be permanently suspended.</p>
+
+<p>You may also be required to submit documentation to: documents@paypa1-verify.net</p>
+
+<p>Attachment: <a href="http://cdn.paypa1-verification.com/files/account_statement.pdf.exe">
+account_statement.pdf</a></p>
+
+<p>File Hash (MD5): d41d8cd98f00b204e9800998ecf8427e</p>
+
+<p>Regards,<br>
+PayPal Security Team</p>
+</body>
+</html>

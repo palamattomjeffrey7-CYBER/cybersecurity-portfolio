@@ -1,0 +1,23 @@
+// RULE 05 — Suspicious PowerShell Execution
+// MITRE: T1059.001 | Severity: HIGH | Tactic: Execution
+// Trigger: PowerShell with encoded commands or download cradles
+// ─────────────────────────────────────────────────────────────────────────────
+SecurityEvent
+| where TimeGenerated >= ago(1h)
+| where EventID == 4688  // Process creation
+| where NewProcessName has "powershell" or NewProcessName has "pwsh"
+| where CommandLine has_any (
+    "-enc", "-encodedcommand",
+    "iex", "invoke-expression",
+    "downloadstring", "downloadfile",
+    "webclient", "net.webclient",
+    "bypass", "-nop", "-windowstyle hidden",
+    "frombase64string", "bitsadmin",
+    "certutil -decode"
+)
+| extend
+    Severity = iff(CommandLine has_any ("downloadstring", "iex", "encodedcommand"), "CRITICAL", "HIGH"),
+    MITRE = "T1059.001",
+    AttackType = "Suspicious PowerShell Activity",
+    RecommendedAction = "Isolate endpoint, collect full command line for forensics, escalate to L2"
+| project TimeGenerated, Computer, SubjectUserName, CommandLine, Severity, MITRE, RecommendedAction

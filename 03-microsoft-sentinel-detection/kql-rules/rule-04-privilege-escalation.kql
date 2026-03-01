@@ -1,0 +1,24 @@
+// RULE 04 — Privilege Escalation — Local Admin Account Creation
+// MITRE: T1136.001 | Severity: HIGH | Tactic: Persistence
+// Trigger: New local account created and added to admin group
+// ─────────────────────────────────────────────────────────────────────────────
+SecurityEvent
+| where TimeGenerated >= ago(24h)
+| where EventID in (4720, 4732)  // Account created, member added to group
+| extend
+    ActivityType = case(
+        EventID == 4720, "New Account Created",
+        EventID == 4732, "Account Added to Admin Group",
+        "Unknown"
+    )
+| summarize
+    Activities = make_list(ActivityType),
+    SubjectAccounts = make_set(SubjectUserName),
+    Computers = make_set(Computer)
+    by TargetAccount, bin(TimeGenerated, 10m)
+| where array_length(Activities) >= 2
+| extend
+    Severity = "HIGH",
+    MITRE = "T1136.001",
+    RecommendedAction = "Verify with IT, disable if unauthorized, investigate creating account"
+| project TimeGenerated, TargetAccount, Activities, SubjectAccounts, Computers, Severity, MITRE, RecommendedAction
