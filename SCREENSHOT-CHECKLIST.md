@@ -1,8 +1,6 @@
-# 📸 Screenshot Checklist — Portfolio Evidence
+# 📸 Screenshot  Portfolio Evidence
 
-This checklist documents all screenshots needed to make each project visually compelling on GitHub. Screenshots should be placed in each project's evidence/screenshots folder and referenced in the README.
 
----
 
 ## 01 — AWS Cloud Pentest (Already Included: 110 screenshots from dissertation)
 
@@ -89,26 +87,6 @@ Evidence screenshots are already in `01-aws-cloud-pentest/evidence/`. Key figure
 **Folder:** `05-soc-incident-response-playbook/sample-incidents/`
 
 ---
-
-## Total Screenshots Needed
-
-| Project | Already Have | Still Needed |
-|---------|-------------|--------------|
-| 01 — AWS Cloud Pentest | 110 ✅ | 0 |
-| 02 — Phishing Analyzer | 0 | 8 |
-| 03 — Sentinel Detection | 0 | 9 |
-| 04 — Splunk Threat Hunting | 0 | 9 |
-| 05 — IR Playbook | 0 | 7 |
-| **Total** | **110** | **33** |
-
----
-
-## How to Take Screenshots
-
-1. **Terminal screenshots:** Run the tools and capture the output using Snipping Tool or `Win+Shift+S`
-2. **Sentinel screenshots:** If you have access to a Sentinel workspace, run the KQL queries and capture
-3. **If no Sentinel access:** Use the Azure free trial to set up a Log Analytics workspace
-4. **Format:** Save as `.png`, use descriptive filenames (e.g., `brute-force-detection-output.png`)
 5. **Crop:** Remove any personal information, taskbar, or irrelevant content
 6. **Size:** Aim for 1200-1600px wide for good GitHub rendering
 
