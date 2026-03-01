@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=28&duration=4000&pause=1000&color=00D4FF&center=true&vCenter=true&width=700&lines=Jeffrey+Roshan+Palamattom;SOC+Analyst+%7C+Cloud+Security+%7C+Threat+Hunter;MSc+Cyber+Security+(Distinction)" alt="Typing SVG" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=28&duration=4000&pause=1000&color=00D4FF&center=true&vCenter=true&width=700&lines=Jeffrey+Roshan+Palamattom;SOC-Analyst+%7C+Cloud+Security+%7C+Threat-Hunter;MSc+Cyber+Security+(Distinction)" alt="Typing SVG" />
 </p>
 
 <p align="center">
